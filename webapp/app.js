@@ -1,4 +1,3 @@
-const loadDbBtn = document.getElementById('loadDbBtn');
 const romInput = document.getElementById('romInput');
 const folderInput = document.getElementById('folderInput');
 const selectRomsBtn = document.getElementById('selectRomsBtn');
@@ -100,25 +99,26 @@ async function scanEntries(queue, files) {
     }
 }
 
-
-loadDbBtn.addEventListener('click', async () => {
+(async () => {
     statusDiv.innerText = "Loading database... (this may take a moment)";
-    loadDbBtn.disabled = true;
+
     try {
         const count = await window.boxartDb.load();
         statusDiv.innerText = `Database loaded! ${count} games found. Add ROMs to start.`;
+
         selectRomsBtn.disabled = false;
         selectFolderBtn.disabled = false;
-        loadDbBtn.style.display = 'none';
+
         selectRomsBtn.classList.remove('secondary');
         selectRomsBtn.classList.add('primary');
         selectFolderBtn.classList.remove('secondary');
         selectFolderBtn.classList.add('primary');
+
     } catch (e) {
         statusDiv.innerText = "Error loading database: " + e.message;
-        loadDbBtn.disabled = false;
+        console.error(e);
     }
-});
+})();
 
 selectRomsBtn.addEventListener('click', () => {
     romInput.click();
