@@ -159,8 +159,6 @@ selectFolderBtn.addEventListener('click', async () => {
 });
 
 const handleFiles = async (files) => {
-    if (files.length === 0) return;
-
     const validFiles = files.filter(f => f.name.match(/\.(nds|gba|gbc|gb|nes|sfc|smc|snes|ds|dsi)$/i));
 
     if (validFiles.length === 0) {
@@ -168,22 +166,49 @@ const handleFiles = async (files) => {
         return;
     }
 
-    statusDiv.innerText = `Processing ${validFiles.length} files...`;
+    statusDiv.innerText = `Preparing to scan ${validFiles.length} files...`;
 
-    for (const file of validFiles) {
+    const CONCURRENCY = 8;
+    let processedCount = 0;
+
+    const processFile = async (file) => {
+        let itemUI = null;
         try {
             const rom = await RomParser.parse(file);
             const dbMatch = window.boxartDb.find(rom.sha1, rom.titleId, rom.consoleType);
 
-            const item = await createBoxartItem(rom, dbMatch);
-            resultsDiv.appendChild(item.element);
-            processedItems.push(item);
+            itemUI = createBoxartItemUI(rom, dbMatch);
+            resultsDiv.appendChild(itemUI.element);
+
+            const resolved = await resolveBoxartImage(rom, dbMatch, itemUI);
+
+            processedItems.push(resolved);
+
         } catch (err) {
-            console.error("Error parsing " + file.name, err);
+            console.error("Error processing " + file.name, err);
+        } finally {
+            processedCount++;
+            statusDiv.innerText = `Processed ${processedCount}/${validFiles.length} files...`;
         }
+    };
+
+    const queue = [...validFiles];
+    const workers = [];
+
+    const worker = async () => {
+        while (queue.length > 0) {
+            const file = queue.shift();
+            await processFile(file);
+        }
+    };
+
+    for (let i = 0; i < Math.min(CONCURRENCY, validFiles.length); i++) {
+        workers.push(worker());
     }
 
-    statusDiv.innerText = `Processed ${processedItems.length} ROMs.`;
+    await Promise.all(workers);
+
+    statusDiv.innerText = `Completed! ${processedItems.filter(i => i.found).length} covers found.`;
     if (processedItems.some(i => i.found)) {
         downloadAllBtn.disabled = false;
     }
@@ -194,7 +219,7 @@ folderInput.addEventListener('change', (e) => handleFiles(Array.from(e.target.fi
 
 let processedItems = [];
 
-async function createBoxartItem(rom, dbMatch) {
+function createBoxartItemUI(rom, dbMatch) {
     const el = document.createElement('div');
     el.className = 'boxart-item';
 
@@ -203,7 +228,32 @@ async function createBoxartItem(rom, dbMatch) {
 
     const img = document.createElement('img');
     img.alt = rom.filename;
+    img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ctext x='50' y='50' font-family='Arial' font-size='12' text-anchor='middle' dy='.3em' fill='%23555'%3EScanning...%3C/text%3E%3C/svg%3E";
 
+    imgContainer.appendChild(img);
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'boxart-name';
+    nameEl.innerText = (dbMatch ? dbMatch.Name : rom.title) || rom.filename;
+
+    const statusEl = document.createElement('div');
+    statusEl.className = 'boxart-status';
+    statusEl.innerText = "Scanning...";
+
+    el.appendChild(imgContainer);
+    el.appendChild(nameEl);
+    el.appendChild(statusEl);
+
+    return {
+        element: el,
+        img: img,
+        statusEl: statusEl,
+        rom,
+        dbMatch
+    };
+}
+
+async function resolveBoxartImage(rom, dbMatch, ui) {
     const candidates = getBoxartCandidates(rom, dbMatch);
     let finalUrl = null;
     let found = false;
@@ -222,44 +272,27 @@ async function createBoxartItem(rom, dbMatch) {
         for (const rawUrl of candidates) {
             try {
                 const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(rawUrl)}&output=png`;
-
                 await tryLoad(proxyUrl);
                 finalUrl = proxyUrl;
                 found = true;
                 break;
-            } catch (e) {
-            }
+            } catch (e) { }
         }
     }
 
-    const statusEl = document.createElement('div');
-    statusEl.className = 'boxart-status';
-
     if (found) {
-        img.src = finalUrl;
-        img.crossOrigin = "Anonymous";
-        statusEl.innerText = "Found";
-        statusEl.classList.add('found');
+        ui.img.src = finalUrl;
+        ui.img.crossOrigin = "Anonymous";
+        ui.statusEl.innerText = "Found";
+        ui.statusEl.classList.add('found');
     } else {
-        img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ctext x='50' y='50' font-family='Arial' font-size='20' text-anchor='middle' dy='.3em' fill='%23555'%3E?%3C/text%3E%3C/svg%3E";
-        statusEl.innerText = "Not Found";
-        statusEl.classList.add('missing');
+        ui.img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ctext x='50' y='50' font-family='Arial' font-size='20' text-anchor='middle' dy='.3em' fill='%23555'%3E?%3C/text%3E%3C/svg%3E";
+        ui.statusEl.innerText = "Missing";
+        ui.statusEl.classList.add('missing');
     }
 
-    imgContainer.appendChild(img);
-
-    const nameEl = document.createElement('div');
-    nameEl.className = 'boxart-name';
-    nameEl.innerText = (dbMatch ? dbMatch.Name : rom.title) || rom.filename;
-
-    el.appendChild(imgContainer);
-    el.appendChild(nameEl);
-    el.appendChild(statusEl);
-
     return {
-        element: el,
-        rom,
-        dbMatch,
+        ...ui,
         url: finalUrl,
         found
     };
