@@ -55,6 +55,28 @@
                 </div>
             </div>
 
+            <div class="settings-group">
+                <h3>Advanced</h3>
+                <div class="setting-item">
+                    <label for="optRegion">Region Preference</label>
+                    <select id="optRegion">
+                        <option value="Auto">Auto (Match ROM)</option>
+                        <option value="US">USA (NTSC-U)</option>
+                        <option value="EN">Europe (PAL)</option>
+                        <option value="JA">Japan (NTSC-J)</option>
+                        <option value="KO">Korea</option>
+                    </select>
+                </div>
+                <div class="setting-item checkbox-item">
+                    <input type="checkbox" id="optPrioritizeGameTdb" checked>
+                    <label for="optPrioritizeGameTdb">High Quality First (GameTDB)</label>
+                </div>
+                <div class="setting-item checkbox-item">
+                    <input type="checkbox" id="optUseFilename" checked>
+                    <label for="optUseFilename">Fallback to Filename</label>
+                </div>
+            </div>
+
             <div class="sidebar-footer">
                 <p>Powered by <a href="https://github.com/KirovAir/TwilightBoxart" target="_blank">TwilightBoxart</a>
                     logic.</p>

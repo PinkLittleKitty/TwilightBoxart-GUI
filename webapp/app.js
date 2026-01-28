@@ -12,6 +12,10 @@ const optAspectRatio = document.getElementById('optAspectRatio');
 const optBorder = document.getElementById('optBorder');
 const optBorderColor = document.getElementById('optBorderColor');
 
+const optRegion = document.getElementById('optRegion');
+const optPrioritizeGameTdb = document.getElementById('optPrioritizeGameTdb');
+const optUseFilename = document.getElementById('optUseFilename');
+
 const dropZone = document.getElementById('dropZone');
 
 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -347,23 +351,59 @@ async function resolveBoxartImage(rom, dbMatch, ui) {
 function getBoxartCandidates(rom, dbMatch) {
     const urls = [];
 
-    if (dbMatch && dbMatch.Name) {
-        const consoleStr = mapConsoleTypeToLibRetro(rom.consoleType);
-        if (consoleStr) {
-            const cleanName = sanitizeLibRetroName(dbMatch.Name);
-            const encodedName = encodeURIComponent(cleanName).replace(/%3B/g, ';');
-            urls.push(`https://github.com/libretro-thumbnails/${consoleStr}/raw/master/Named_Boxarts/${encodedName}.png`);
+    const addLibRetro = () => {
+        if (dbMatch && dbMatch.Name) {
+            const consoleStr = mapConsoleTypeToLibRetro(rom.consoleType);
+            if (consoleStr) {
+                const cleanName = sanitizeLibRetroName(dbMatch.Name);
+                const encodedName = encodeURIComponent(cleanName).replace(/%3B/g, ';');
+                urls.push(`https://github.com/libretro-thumbnails/${consoleStr}/raw/master/Named_Boxarts/${encodedName}.png`);
+            }
+        }
+    };
+
+    const addGameTdb = () => {
+        if ((rom.consoleType === 'NintendoDS' || rom.consoleType === 'NintendoDSi') && rom.titleId) {
+            let region = getGameTdbRegion(rom.regionId);
+
+            if (optRegion.value !== 'Auto') {
+                region = optRegion.value;
+            }
+
+            urls.push(`https://art.gametdb.com/ds/coverHQ/${region}/${rom.titleId}.png`);
+            urls.push(`https://art.gametdb.com/ds/coverM/${region}/${rom.titleId}.jpg`);
+
+            if (optRegion.value === 'Auto' && region !== 'EN' && region !== 'US') {
+                urls.push(`https://art.gametdb.com/ds/coverHQ/EN/${rom.titleId}.png`);
+            }
+        }
+    };
+
+    const addFilename = () => {
+        if (optUseFilename.checked) {
+            const consoleStr = mapConsoleTypeToLibRetro(rom.consoleType);
+            if (consoleStr) {
+                const baseName = rom.filename.replace(/\.[^/.]+$/, "");
+                const cleanName = sanitizeLibRetroName(baseName);
+                const encodedName = encodeURIComponent(cleanName).replace(/%3B/g, ';');
+                urls.push(`https://github.com/libretro-thumbnails/${consoleStr}/raw/master/Named_Boxarts/${encodedName}.png`);
+            }
         }
     }
 
-    if ((rom.consoleType === 'NintendoDS' || rom.consoleType === 'NintendoDSi') && rom.titleId) {
-        const region = getGameTdbRegion(rom.regionId);
-        urls.push(`https://art.gametdb.com/ds/coverHQ/${region}/${rom.titleId}.png`);
+
+    if (optPrioritizeGameTdb.checked) {
+        addGameTdb();
+        addLibRetro();
+    } else {
+        addLibRetro();
+        addGameTdb();
     }
+
+    addFilename();
 
     return urls;
 }
-
 function getGameTdbRegion(regionId) {
     switch (regionId) {
         case 'E': case 'T': return 'US';
