@@ -28,7 +28,7 @@ Automatically identifies games using the bundled **No-Intro Database**:
 
 ## 🛠️ How to Use
 
-1.  **Open the Web App**: [Click Here to Run](https://www.justneki.com/TwilightBoxart-GUI/) *(Or open `webapp/index.html` locally)*.
+1.  **Open the Web App**: [Click Here to Run](https://www.justneki.com/TwilightBoxart-GUI/webapp) *(Or open `webapp/index.html` locally)*.
 2.  **Add Your Games**: Drag and drop your folder onto the drop zone.
 3.  **Configure**: Choose your border style (e.g., "Nintendo DSi") and target size on the sidebar.
 4.  **Download**: Click **Download All** to get a `.zip` file containing all your processed box art, ready to put in `_nds/TWiLightMenu/boxart`.
