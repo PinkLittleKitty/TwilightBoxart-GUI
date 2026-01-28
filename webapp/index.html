@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TwilightBoxart Web</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="FileSaver.min.js"></script>
+</head>
+
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="brand">
+                <h1>TwilightBoxart</h1>
+                <span class="version">Web Edition</span>
+            </div>
+
+            <div class="settings-group">
+                <h3>Export Settings</h3>
+                <div class="setting-item">
+                    <label for="optWidth">Width</label>
+                    <input type="number" id="optWidth" value="128">
+                </div>
+                <div class="setting-item">
+                    <label for="optHeight">Height</label>
+                    <input type="number" id="optHeight" value="115">
+                </div>
+                <div class="setting-item checkbox-item">
+                    <input type="checkbox" id="optAspectRatio" checked>
+                    <label for="optAspectRatio">Keep Aspect Ratio</label>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <h3>Border Style</h3>
+                <div class="setting-item">
+                    <label for="optBorder">Type</label>
+                    <select id="optBorder">
+                        <option value="None">None</option>
+                        <option value="Line">Simple Line</option>
+                        <option value="DSi">Nintendo DSi</option>
+                        <option value="3DS">Nintendo 3DS</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label for="optBorderColor">Border Color</label>
+                    <div class="color-picker-wrapper">
+                        <input type="color" id="optBorderColor" value="#000000">
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <p>Powered by <a href="https://github.com/KirovAir/TwilightBoxart" target="_blank">TwilightBoxart</a>
+                    logic.</p>
+                <p>Art via GameTDB & LibRetro.</p>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="toolbar">
+                <div class="toolbar-actions">
+                    <button id="loadDbBtn" class="btn primary">
+                        <span class="icon">📂</span> Load Database
+                    </button>
+
+                    <button id="selectRomsBtn" class="btn secondary" disabled>
+                        <span class="icon">📄</span> Add Files
+                    </button>
+                    <button id="selectFolderBtn" class="btn secondary" disabled>
+                        <span class="icon">📁</span> Add Folder
+                    </button>
+
+                    <button id="downloadAllBtn" class="btn success" disabled>
+                        <span class="icon">⬇️</span> Download All
+                    </button>
+
+                    <input type="file" id="romInput" multiple accept=".nds,.gba,.gbc,.gb,.nes,.sfc,.smc,.snes"
+                        style="display: none;">
+                    <input type="file" id="folderInput" webkitdirectory directory style="display: none;">
+                </div>
+
+                <div id="status" class="status-bar">Waiting for database...</div>
+            </header>
+
+            <div class="content-area">
+                <div id="dropZone" class="drop-zone">
+                    <div class="drop-content">
+                        <span class="drop-icon">📥</span>
+                        <p class="drop-title">Drop ROMs Folder Here</p>
+                        <p class="drop-subtitle">Recursively scans for compatible games</p>
+                    </div>
+                </div>
+
+                <div id="results" class="results-grid">
+                    <!-- Items go here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="borders.js"></script>
+    <script src="db.js"></script>
+    <script src="rom.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
