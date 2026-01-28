@@ -101,6 +101,12 @@
                         <span class="icon">⬇️</span> Download All
                     </button>
 
+                    <div class="filter-group">
+                        <button id="filterAll" class="btn filter-btn active">All</button>
+                        <button id="filterFound" class="btn filter-btn">Found</button>
+                        <button id="filterMissing" class="btn filter-btn">Missing</button>
+                    </div>
+
                     <input type="file" id="romInput" multiple accept=".nds,.gba,.gbc,.gb,.nes,.sfc,.smc,.snes"
                         style="display: none;">
                     <input type="file" id="folderInput" webkitdirectory directory style="display: none;">
@@ -123,6 +129,14 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <div id="previewModal" class="modal">
+        <div class="modal-content">
+            <span id="closeModal" class="close">&times;</span>
+            <img id="modalImg" src="" alt="Preview">
+            <div id="modalCaption"></div>
+        </div>
     </div>
 
     <script src="borders.js"></script>

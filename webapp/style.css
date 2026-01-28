@@ -350,3 +350,112 @@ body {
 .boxart-status.missing {
     color: #ef4444;
 }
+/* Filter Group */
+.filter-group {
+    display: flex;
+    margin-left: 1rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.filter-btn {
+    background: var(--bg-card);
+    border: none;
+    border-right: 1px solid var(--border-subtle);
+    border-radius: 0;
+    color: var(--text-secondary);
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+}
+
+.filter-btn:last-child {
+    border-right: none;
+}
+
+.filter-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.filter-btn.active {
+    background: var(--text-primary);
+    color: var(--bg-root);
+}
+
+
+/* Modal */
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1000; 
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    overflow: auto; 
+    background-color: rgba(0,0,0,0.85); 
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.show {
+    display: flex;
+    animation: fadeIn 0.2s;
+}
+
+.modal-content {
+    position: relative;
+    background-color: var(--bg-card);
+    padding: 1rem;
+    border-radius: 12px;
+    max-width: 90%;
+    max-height: 90%;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#modalImg {
+    max-width: 80vw;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: 4px;
+    /* Transparency checkerboard */
+    background-image: linear-gradient(45deg, #333 25%, transparent 25%), linear-gradient(-45deg, #333 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #333 75%), linear-gradient(-45deg, transparent 75%, #333 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+
+#modalCaption {
+    margin-top: 1rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.close {
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    color: #fff;
+    background: #ef4444;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 30px;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.close:hover {
+    background: #dc2626;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}

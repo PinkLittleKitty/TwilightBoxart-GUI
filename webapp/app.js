@@ -628,3 +628,69 @@ downloadAllBtn.addEventListener('click', async () => {
     downloadAllBtn.disabled = false;
     downloadAllBtn.innerHTML = originalText;
 });
+
+const filterAll = document.getElementById('filterAll');
+const filterFound = document.getElementById('filterFound');
+const filterMissing = document.getElementById('filterMissing');
+
+let currentFilter = 'all';
+
+function applyFilter(filter) {
+    currentFilter = filter;
+
+    [filterAll, filterFound, filterMissing].forEach(b => b.classList.remove('active'));
+    if (filter === 'all') filterAll.classList.add('active');
+    if (filter === 'found') filterFound.classList.add('active');
+    if (filter === 'missing') filterMissing.classList.add('active');
+
+    const items = document.querySelectorAll('.boxart-item');
+    items.forEach(item => {
+        const isFound = item.querySelector('.boxart-status.found');
+
+        if (filter === 'all') {
+            item.style.display = 'flex';
+        } else if (filter === 'found') {
+            item.style.display = isFound ? 'flex' : 'none';
+        } else if (filter === 'missing') {
+            item.style.display = !isFound ? 'flex' : 'none';
+        }
+    });
+}
+
+filterAll.addEventListener('click', () => applyFilter('all'));
+filterFound.addEventListener('click', () => applyFilter('found'));
+filterMissing.addEventListener('click', () => applyFilter('missing'));
+
+
+const modal = document.getElementById('previewModal');
+const modalImg = document.getElementById('modalImg');
+const modalCaption = document.getElementById('modalCaption');
+const closeModal = document.getElementById('closeModal');
+
+function openModal(src, caption) {
+    modal.classList.add('show');
+    modal.style.display = "flex";
+    modalImg.src = src;
+    modalCaption.innerText = caption;
+}
+
+closeModal.onclick = function () {
+    modal.classList.remove('show');
+    modal.style.display = "none";
+}
+
+window.onclick = function (event) {
+    if (event.target == modal) {
+        modal.classList.remove('show');
+        modal.style.display = "none";
+    }
+}
+
+resultsDiv.addEventListener('click', (e) => {
+    const img = e.target.closest('img');
+    if (img && img.src && !img.src.startsWith('data:')) {
+        const item = img.closest('.boxart-item');
+        const name = item.querySelector('.boxart-name').innerText;
+        openModal(img.src, name);
+    }
+});
