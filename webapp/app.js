@@ -572,11 +572,15 @@ async function drawImgLibBorder(ctx, canvasW, canvasH, data) {
 }
 
 downloadAllBtn.addEventListener('click', async () => {
+    const originalText = downloadAllBtn.innerHTML;
+    downloadAllBtn.disabled = true;
+    downloadAllBtn.innerHTML = '<span class="icon">⏳</span> Processing...';
+
     const zip = new JSZip();
     const folder = zip.folder("boxart");
 
     let counting = 0;
-    statusDiv.innerText = "Processing images and zipping... (This might take a while)";
+    statusDiv.innerText = "Initializing download...";
 
     const options = {
         width: optWidth.value,
@@ -586,25 +590,41 @@ downloadAllBtn.addEventListener('click', async () => {
         borderColor: optBorderColor.value
     };
 
+    const total = processedItems.filter(i => i.url).length;
+    let current = 0;
+
     for (const item of processedItems) {
         if (item.url) {
             try {
+                statusDiv.innerText = `Processing image ${current + 1}/${total}...`;
+                await new Promise(r => requestAnimationFrame(r));
+
                 const blob = await processImage(item.url, options);
 
-                const filename = item.rom.filename + ".png";
+                const filename = item.rom.filename.replace(/\.[^/.]+$/, "") + ".png";
                 folder.file(filename, blob);
                 counting++;
             } catch (e) {
                 console.warn("Failed to process " + item.url, e);
             }
+            current++;
         }
     }
 
     if (counting > 0) {
-        const content = await zip.generateAsync({ type: "blob" });
-        saveAs(content, "boxart_processed.zip");
-        statusDiv.innerText = `Downloaded ${counting} covers!`;
+        statusDiv.innerText = "Zipping files... (Almost done)";
+        await new Promise(r => setTimeout(r, 10));
+
+        const content = await zip.generateAsync({ type: "blob" }, (metadata) => {
+            statusDiv.innerText = `Zipping: ${metadata.percent.toFixed(0)}%`;
+        });
+
+        saveAs(content, "boxart.zip");
+        statusDiv.innerText = `Success! Downloaded ${counting} covers.`;
     } else {
         statusDiv.innerText = "No covers could be downloaded.";
     }
+
+    downloadAllBtn.disabled = false;
+    downloadAllBtn.innerHTML = originalText;
 });
