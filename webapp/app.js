@@ -158,6 +158,61 @@ selectFolderBtn.addEventListener('click', async () => {
     }
 });
 
+class WorkerPool {
+    constructor(script, size) {
+        this.script = script;
+        this.size = size || navigator.hardwareConcurrency || 4;
+        this.workers = [];
+        this.queue = [];
+        this.active = 0;
+
+        for (let i = 0; i < this.size; i++) {
+            this.workers.push({
+                id: i,
+                worker: new Worker(script),
+                busy: false
+            });
+        }
+    }
+
+    run(data) {
+        return new Promise((resolve, reject) => {
+            const task = { data, resolve, reject };
+            this.queue.push(task);
+            this.processNext();
+        });
+    }
+
+    processNext() {
+        if (this.queue.length === 0) return;
+
+        const availableWorker = this.workers.find(w => !w.busy);
+        if (!availableWorker) return;
+
+        const task = this.queue.shift();
+        availableWorker.busy = true;
+        this.active++;
+
+        availableWorker.worker.onmessage = (e) => {
+            availableWorker.busy = false;
+            this.active--;
+
+            if (e.data.status === 'success') {
+                task.resolve(e.data.result);
+            } else {
+                task.reject(new Error(e.data.error));
+            }
+
+            this.processNext();
+        };
+
+        availableWorker.worker.postMessage({ ...task.data, id: availableWorker.id });
+    }
+}
+
+const romWorkerPool = new WorkerPool('worker.js');
+
+
 const handleFiles = async (files) => {
     const validFiles = files.filter(f => f.name.match(/\.(nds|gba|gbc|gb|nes|sfc|smc|snes|ds|dsi)$/i));
 
@@ -166,52 +221,37 @@ const handleFiles = async (files) => {
         return;
     }
 
-    statusDiv.innerText = `Preparing to scan ${validFiles.length} files...`;
+    statusDiv.innerText = `Adding ${validFiles.length} files to queue...`;
 
-    const CONCURRENCY = 8;
     let processedCount = 0;
 
-    const processFile = async (file) => {
-        let itemUI = null;
+    validFiles.forEach(async (file) => {
+        const itemUI = createPendingUI(file);
+        resultsDiv.appendChild(itemUI.element);
+
         try {
-            const rom = await RomParser.parse(file);
+            const romData = await romWorkerPool.run({ file });
+
+            const rom = { ...romData, file };
+
+            updateUIState(itemUI, "Searching...", romData.title || romData.filename);
+
             const dbMatch = window.boxartDb.find(rom.sha1, rom.titleId, rom.consoleType);
 
-            itemUI = createBoxartItemUI(rom, dbMatch);
-            resultsDiv.appendChild(itemUI.element);
-
             const resolved = await resolveBoxartImage(rom, dbMatch, itemUI);
-
             processedItems.push(resolved);
 
         } catch (err) {
             console.error("Error processing " + file.name, err);
+            updateUIState(itemUI, "Error", file.name, "missing");
         } finally {
             processedCount++;
             statusDiv.innerText = `Processed ${processedCount}/${validFiles.length} files...`;
+            if (processedItems.some(i => i.found)) {
+                downloadAllBtn.disabled = false;
+            }
         }
-    };
-
-    const queue = [...validFiles];
-    const workers = [];
-
-    const worker = async () => {
-        while (queue.length > 0) {
-            const file = queue.shift();
-            await processFile(file);
-        }
-    };
-
-    for (let i = 0; i < Math.min(CONCURRENCY, validFiles.length); i++) {
-        workers.push(worker());
-    }
-
-    await Promise.all(workers);
-
-    statusDiv.innerText = `Completed! ${processedItems.filter(i => i.found).length} covers found.`;
-    if (processedItems.some(i => i.found)) {
-        downloadAllBtn.disabled = false;
-    }
+    });
 };
 
 romInput.addEventListener('change', (e) => handleFiles(Array.from(e.target.files)));
@@ -219,7 +259,7 @@ folderInput.addEventListener('change', (e) => handleFiles(Array.from(e.target.fi
 
 let processedItems = [];
 
-function createBoxartItemUI(rom, dbMatch) {
+function createPendingUI(file) {
     const el = document.createElement('div');
     el.className = 'boxart-item';
 
@@ -227,18 +267,18 @@ function createBoxartItemUI(rom, dbMatch) {
     imgContainer.className = 'boxart-image-container';
 
     const img = document.createElement('img');
-    img.alt = rom.filename;
-    img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ctext x='50' y='50' font-family='Arial' font-size='12' text-anchor='middle' dy='.3em' fill='%23555'%3EScanning...%3C/text%3E%3C/svg%3E";
+    img.alt = file.name;
+    img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ctext x='50' y='50' font-family='Arial' font-size='12' text-anchor='middle' dy='.3em' fill='%23777'%3EHashing...%3C/text%3E%3C/svg%3E";
 
     imgContainer.appendChild(img);
 
     const nameEl = document.createElement('div');
     nameEl.className = 'boxart-name';
-    nameEl.innerText = (dbMatch ? dbMatch.Name : rom.title) || rom.filename;
+    nameEl.innerText = file.name;
 
     const statusEl = document.createElement('div');
     statusEl.className = 'boxart-status';
-    statusEl.innerText = "Scanning...";
+    statusEl.innerText = "Reading...";
 
     el.appendChild(imgContainer);
     el.appendChild(nameEl);
@@ -247,11 +287,17 @@ function createBoxartItemUI(rom, dbMatch) {
     return {
         element: el,
         img: img,
-        statusEl: statusEl,
-        rom,
-        dbMatch
+        nameEl: nameEl,
+        statusEl: statusEl
     };
 }
+
+function updateUIState(ui, statusText, nameText, statusClass) {
+    ui.statusEl.innerText = statusText;
+    if (nameText) ui.nameEl.innerText = nameText;
+    if (statusClass) ui.statusEl.classList.add(statusClass);
+}
+
 
 async function resolveBoxartImage(rom, dbMatch, ui) {
     const candidates = getBoxartCandidates(rom, dbMatch);
