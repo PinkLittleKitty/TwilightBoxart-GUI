@@ -343,6 +343,7 @@ async function resolveBoxartImage(rom, dbMatch, ui) {
 
     return {
         ...ui,
+        rom,
         url: finalUrl,
         found
     };
